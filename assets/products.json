@@ -1,0 +1,44 @@
+[
+  {
+    "id": "1",
+    "name": "Laptop Pro X",
+    "description": "Potente laptop para profesionales creativos.",
+    "price": 1499.99,
+    "imageUrl": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500"
+  },
+  {
+    "id": "2",
+    "name": "Smartphone Z",
+    "description": "El último smartphone con una cámara increíble.",
+    "price": 999.00,
+    "imageUrl": "https://images.unsplash.com/photo-1580910051074-3eb694886505?w=500"
+  },
+  {
+    "id": "3",
+    "name": "Auriculares Wave",
+    "description": "Sonido inmersivo con cancelación de ruido.",
+    "price": 249.50,
+    "imageUrl": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500"
+  },
+  {
+    "id": "4",
+    "name": "Monitor 4K Ultra",
+    "description": "Resolución impresionante para trabajo y juegos.",
+    "price": 750.00,
+    "imageUrl": "https://images.unsplash.com/photo-1527814223028-7953504a5135?w=500"
+  },
+  {
+    "id": "5",
+    "name": "Teclado Mecánico",
+    "description": "Precisión y comodidad para escribir y jugar.",
+    "price": 120.00,
+    "imageUrl": "https://images.unsplash.com/photo-1618384887924-3367945dca79?w=500"
+  },
+  {
+    "id": "6",
+    "name": "Smartwatch Fit",
+    "description": "Monitorea tu salud y actividad física.",
+    "price": 199.99,
+    "imageUrl": "https://images.unsplash.com/photo-1544117519-31a4b719223d?w=500"
+  }
+]
