@@ -16,24 +16,28 @@ dependencies:
   firebase_storage: ^13.0.3
   firebase_auth: ^6.1.1
   carousel_slider: ^5.1.1
-  dotted_border: ^2.1.0
-  fluttertoast: ^8.2.4
+  dotted_border: ^3.1.0
+  fluttertoast: ^9.0.0
   intl: ^0.20.2
   google_maps_flutter: ^2.6.1 
   geolocator: ^14.0.2
   geocoding: ^4.0.0
   flutter_staggered_animations: ^1.1.1
-  flutter_launcher_icons: ^0.13.1
+  flutter_launcher_icons: ^0.14.4
+  flutter_admin_scaffold: ^1.4.0
+  cached_network_image: ^3.4.1
+  google_sign_in: ^6.2.1
+  flutter_svg: ^2.2.2
 cupertino_icons: ^1.0.2
 firebase_core: ^2.24.2
 cloud_firestore: ^4.13.5
-provider: ^6.1.1 # <--- Añade esta línea
+provider: ^6.1.1 
 
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0 # Versión de lints actualizada
+  flutter_lints: ^6.0.0 # Versión de lints actualizada
 
 flutter:
   uses-material-design: true

@@ -18,6 +18,16 @@ class _CartScreenState extends State<CartScreen> {
   // Constante para el IGV (18% en Perú)
   static const double _kTaxRate = 0.18;
 
+  // --- ¡NUEVO! Dirección estática de la tienda ---
+  static const String _kTiendaDireccion = "Av. Javier Prado Este 123, San Isidro, Lima";
+  static final LatLng _kTiendaLatLng = LatLng(-12.0895, -77.0500);
+
+  // --- ¡NUEVO! Variables de estado para la entrega ---
+  String? _tipoEntregaSeleccionado;
+  String? _direccionEntregaSeleccionada;
+  LatLng? _latLngEntregaSeleccionado;
+
+
   void _removeProductCompletely(String productId) {
     final current = List<Map<String, dynamic>>.from(cartNotifier.value);
     cartNotifier.value = current.where((item) => item['id'] != productId).toList();
@@ -83,6 +93,17 @@ class _CartScreenState extends State<CartScreen> {
         final igv = subtotal * _kTaxRate;
         final totalFinal = subtotal + igv;
         final totalItems = getCartTotalItemCount();
+
+        // --- ¡NUEVO! Reinicia la selección si el carrito se vacía ---
+        if (cartItems.isEmpty && _tipoEntregaSeleccionado != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            setState(() {
+              _tipoEntregaSeleccionado = null;
+              _direccionEntregaSeleccionada = null;
+              _latLngEntregaSeleccionado = null;
+            });
+          });
+        }
 
         return Column(
           children: [
@@ -220,6 +241,7 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
+  // --- ¡WIDGET ACTUALIZADO! ---
   Widget _buildBottomBar(double subtotal, double igv, double totalFinal, int totalItems, BuildContext context) {
     return Container(
       decoration: BoxDecoration(
@@ -237,6 +259,12 @@ class _CartScreenState extends State<CartScreen> {
             _buildPriceRow("Subtotal:", 'S/ ${subtotal.toStringAsFixed(2)}'),
             const SizedBox(height: 4),
             _buildPriceRow("IGV (18%):", 'S/ ${igv.toStringAsFixed(2)}'),
+            
+            // --- ¡NUEVA SECCIÓN DE ENTREGA! ---
+            if (_tipoEntregaSeleccionado != null)
+              _buildInfoEntregaSeleccionada(context, subtotal, igv, totalFinal, totalItems),
+            // --- FIN NUEVA SECCIÓN ---
+
             const SizedBox(height: 4),
             Divider(color: Colors.grey[300]),
             const SizedBox(height: 8),
@@ -245,19 +273,28 @@ class _CartScreenState extends State<CartScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
+                // --- ¡LÓGICA DEL BOTÓN ACTUALIZADA! ---
                 onPressed: () {
                   final user = FirebaseAuth.instance.currentUser;
                   if (user == null) {
                     Navigator.pushNamed(context, '/login');
-                    ScaffoldMessenger.of(context).showSnackBar(
+                     ScaffoldMessenger.of(context).showSnackBar(
                        SnackBar(
                          content: const Text('Inicia sesión para continuar'), 
                          backgroundColor: Colors.orange[800],
                        ),
                      );
+                  } else if (_tipoEntregaSeleccionado == null) {
+                    // 1. Si AÚN NO ha seleccionado, muestra el modal de selección
+                    _showMetodoEntregaDialog(context, subtotal, igv, totalFinal, totalItems);
                   } else {
-                    // --- ¡CAMBIO AQUÍ! Llama al nuevo diálogo de método de entrega ---
-                    _showMetodoEntregaDialog(context, subtotal, igv, totalFinal, totalItems); 
+                    // 2. Si YA seleccionó, muestra la confirmación final
+                    _showCheckoutDialog(
+                      context, subtotal, igv, totalFinal, totalItems,
+                      tipoEntrega: _tipoEntregaSeleccionado!,
+                      direccion: _direccionEntregaSeleccionada, // Pasa la dirección (cliente o tienda)
+                      latLng: _latLngEntregaSeleccionado,     // Pasa el LatLng (cliente o tienda)
+                    );
                   }
                 },
                 style: ElevatedButton.styleFrom(
@@ -265,7 +302,12 @@ class _CartScreenState extends State<CartScreen> {
                   textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)), 
                 ),
-                child: const Text('Proceder al Pago'),
+                // --- ¡TEXTO DEL BOTÓN ACTUALIZADO! ---
+                child: Text(
+                  _tipoEntregaSeleccionado == null 
+                    ? 'Elegir Método de Entrega' 
+                    : 'Confirmar Pedido'
+                ),
               ),
             ),
           ],
@@ -273,6 +315,61 @@ class _CartScreenState extends State<CartScreen> {
       ),
     );
   }
+
+  // --- ¡NUEVO WIDGET AUXILIAR! ---
+  // Muestra la dirección elegida y el botón "Cambiar"
+  Widget _buildInfoEntregaSeleccionada(BuildContext context, double subtotal, double igv, double totalFinal, int totalItems) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Divider(color: Colors.grey[200]),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                _tipoEntregaSeleccionado == 'Recojo en tienda'
+                    ? 'Recogerás en:'
+                    : 'Se enviará a:',
+                style: TextStyle(color: Colors.grey[700], fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              // Botón para cambiar la selección
+              TextButton(
+                style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
+                child: const Text('Cambiar'),
+                onPressed: () {
+                  // Vuelve a abrir el modal de selección
+                  _showMetodoEntregaDialog(context, subtotal, igv, totalFinal, totalItems);
+                },
+              )
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                _tipoEntregaSeleccionado == 'Recojo en tienda' 
+                  ? Icons.store_mall_directory_outlined 
+                  : Icons.location_on_outlined,
+                color: Theme.of(context).primaryColorDark, size: 20
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _direccionEntregaSeleccionada ?? 'No seleccionada',
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
 
   Widget _buildPriceRow(String label, String amount, {bool isTotal = false}) {
     return Row(
@@ -299,7 +396,7 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   // --- ¡FUNCIÓN ACTUALIZADA! ---
-  // Ahora tiene 3 opciones
+  // Ahora actualiza el estado en lugar de llamar a _showCheckoutDialog
   void _showMetodoEntregaDialog(BuildContext context, double subtotal, double igv, double totalFinal, int totalItems) {
     showDialog(
       context: context,
@@ -327,10 +424,12 @@ class _CartScreenState extends State<CartScreen> {
                 ),
                 onPressed: () {
                   Navigator.pop(dialogContext); // Cierra este diálogo
-                  _showCheckoutDialog(
-                    context, subtotal, igv, totalFinal, totalItems,
-                    tipoEntrega: 'Recojo en tienda',
-                  );
+                  // --- ¡CAMBIO! Actualiza el estado ---
+                  setState(() {
+                    _tipoEntregaSeleccionado = 'Recojo en tienda';
+                    _direccionEntregaSeleccionada = _kTiendaDireccion; // Usamos la constante
+                    _latLngEntregaSeleccionado = _kTiendaLatLng;     // Usamos la constante
+                  });
                 },
               ),
               const SizedBox(height: 10),
@@ -344,7 +443,7 @@ class _CartScreenState extends State<CartScreen> {
                 ),
                 onPressed: () {
                   Navigator.pop(dialogContext); // Cierra este diálogo
-                  // --- Llama al nuevo diálogo de selección ---
+                  // --- Llama al nuevo diálogo de selección (esto no cambia) ---
                   _showSeleccionarDireccionDialog(context, subtotal, igv, totalFinal, totalItems);
                 },
               ),
@@ -360,19 +459,19 @@ class _CartScreenState extends State<CartScreen> {
                 onPressed: () async {
                   Navigator.pop(dialogContext); // Cierra este diálogo
 
-                  // Abre la pantalla de seleccionar ubicación (como en la v1)
+                  // Abre la pantalla de seleccionar ubicación
                   final resultado = await Navigator.push<Map<String, dynamic>>(
                     context,
                     MaterialPageRoute(builder: (context) => const SeleccionarUbicacionScreen()),
                   );
 
                   if (resultado != null && resultado.containsKey('direccion') && resultado.containsKey('latLng')) {
-                    _showCheckoutDialog(
-                      context, subtotal, igv, totalFinal, totalItems,
-                      tipoEntrega: 'Delivery',
-                      direccion: resultado['direccion'],
-                      latLng: resultado['latLng'],
-                    );
+                    // --- ¡CAMBIO! Actualiza el estado ---
+                    setState(() {
+                      _tipoEntregaSeleccionado = 'Delivery';
+                      _direccionEntregaSeleccionada = resultado['direccion'];
+                      _latLngEntregaSeleccionado = resultado['latLng'];
+                    });
                   }
                 },
               ),
@@ -383,8 +482,8 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  // --- ¡FUNCIÓN TOTALMENTE NUEVA! ---
-  // Muestra las direcciones guardadas del usuario
+  // --- ¡FUNCIÓN ACTUALIZADA! ---
+  // Ahora actualiza el estado en lugar de llamar a _showCheckoutDialog
   void _showSeleccionarDireccionDialog(BuildContext context, double subtotal, double igv, double totalFinal, int totalItems) {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return; // No debería pasar si llegamos aquí
@@ -465,12 +564,13 @@ class _CartScreenState extends State<CartScreen> {
                       final String direccionCompleta = "$direccion, $ciudad";
                       
                       Navigator.pop(dialogContext); // Cierra este diálogo
-                      _showCheckoutDialog(
-                        context, subtotal, igv, totalFinal, totalItems,
-                        tipoEntrega: 'Delivery',
-                        direccion: direccionCompleta,
-                        latLng: latLng,
-                      );
+                      
+                      // --- ¡CAMBIO! Actualiza el estado ---
+                      setState(() {
+                        _tipoEntregaSeleccionado = 'Delivery';
+                        _direccionEntregaSeleccionada = direccionCompleta;
+                        _latLngEntregaSeleccionado = latLng;
+                      });
                     },
                   );
                 },
@@ -489,8 +589,8 @@ class _CartScreenState extends State<CartScreen> {
   }
 
 
-  // --- ¡FUNCIÓN ACTUALIZADA! ---
-  // La firma del método ha cambiado para aceptar los nuevos parámetros
+  // --- ¡FUNCIÓN DE DIÁLOGO DE PAGO FINAL! ---
+  // (La firma del método ha cambiado para aceptar los nuevos parámetros)
   void _showCheckoutDialog(
     BuildContext context,
     double subtotal,
@@ -524,13 +624,18 @@ class _CartScreenState extends State<CartScreen> {
             
             // --- NUEVA INFORMACIÓN A MOSTRAR ---
             _buildPriceRow("Método:", tipoEntrega),
-            if (tipoEntrega == 'Delivery' && direccion != null)
+            
+            // Muestra la dirección (de tienda o cliente) si existe
+            if (direccion != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8.0, left: 8.0),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.location_on_outlined, size: 16, color: Colors.grey[600]),
+                    Icon(
+                      tipoEntrega == 'Delivery' ? Icons.location_on_outlined : Icons.store_mall_directory_outlined, 
+                      size: 16, color: Colors.grey[600]
+                    ),
                     const SizedBox(width: 4),
                     Expanded(child: Text(direccion, style: TextStyle(color: Colors.grey[600], fontSize: 13))),
                   ],
@@ -609,7 +714,7 @@ class _CartScreenState extends State<CartScreen> {
               );
 
               try {
-                // --- ACTUALIZACIÓN DE FIRESTORE ---
+                // --- ¡LÓGICA DE GUARDADO EN FIRESTORE ACTUALIZADA! ---
                 await FirebaseFirestore.instance.collection('Pedidos').doc(pedidoId).set({
                   'userId': user.uid,
                   'userEmail': user.email ?? 'Sin email',
@@ -630,11 +735,11 @@ class _CartScreenState extends State<CartScreen> {
                   }).toList(), 
                   'createdAt': FieldValue.serverTimestamp(),
                   
-                  // --- CAMPOS NUEVOS A GUARDAR ---
-                  'tipoEntrega': tipoEntrega,
-                  'direccionEntrega': tipoEntrega == 'Delivery' ? direccion : null,
-                  'latLngEntrega': tipoEntrega == 'Delivery' && latLng != null
-                      ? GeoPoint(latLng.latitude, latLng.longitude)
+                  // --- CAMPOS NUEVOS SIMPLIFICADOS ---
+                  'tipoEntrega': tipoEntrega, // "Delivery" o "Recojo en tienda"
+                  'direccionEntrega': direccion, // Guarda la dirección (cliente o tienda)
+                  'latLngEntrega': latLng != null
+                      ? GeoPoint(latLng.latitude, latLng.longitude) // Guarda el GeoPoint (cliente o tienda)
                       : null,
                 });
                 // --- FIN DE CAMPOS NUEVOS ---

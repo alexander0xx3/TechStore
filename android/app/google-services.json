@@ -12,7 +12,12 @@
           "package_name": "com.example.techstore"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "285228582253-39qlomud45p3uvofrngdacncjcma5s9s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCx3dYtACIuJlFYhpOvQ5V89u663K8xaEM"
@@ -20,7 +25,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "285228582253-39qlomud45p3uvofrngdacncjcma5s9s.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "285228582253-fditruurvmval64t7n793haeu4nan2rl.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.techstore"
+              }
+            }
+          ]
         }
       }
     }

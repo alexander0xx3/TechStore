@@ -1,6 +1,9 @@
-// main.dart
+import 'package:flutter/foundation.dart' show kIsWeb; // ¡NUEVO! Para detectar web
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart'; // ¡NUEVO! Generado por 'flutterfire configure'
+
+// --- Importaciones de tu App Móvil (ya las tienes) ---
 import 'PantallaPrincipal.dart'; 
 import 'pantalla_carrito.dart';
 import 'pantalla_login.dart';
@@ -8,11 +11,13 @@ import 'pantalla_registro.dart';
 import "pantalla_perfil.dart";
 import 'pantalla_pedidos.dart'; 
 import 'pantalla_direcciones.dart'; 
-import 'pantalla_deseos.dart'; // ¡¡NUEVO IMPORT!!
+import 'pantalla_deseos.dart'; 
 
+// --- ¡NUEVA IMPORTACIÓN! Para el Panel de Admin ---
+// (Asegúrate de que el nombre del archivo sea 'admin_login.dart')
+import 'admin/admin_login.dart'; 
 
-
-// --- Lógica global del carrito (sin cambios) ---
+// --- Lógica global del carrito (Tu código original) ---
 final ValueNotifier<List<Map<String, dynamic>>> cartNotifier = ValueNotifier([]);
 
 void addProductToCart(Map<String, dynamic> product) {
@@ -60,7 +65,12 @@ int getCartTotalItemCount() {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  
+ 
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  
   runApp(const TechStoreApp());
 }
 
@@ -73,12 +83,13 @@ class TechStoreApp extends StatelessWidget {
       title: 'Tech Store',
       debugShowCheckedModeBanner: false,
       
+      // --- ¡MODIFICADO! (Primario 'indigo' como en tu guía) ---
       theme: ThemeData(
-        primarySwatch: Colors.blueGrey,
-        primaryColor: Colors.blueGrey[900],
+        primarySwatch: Colors.indigo, // Color principal para el admin
+        primaryColor: Colors.indigo[900], // Tono más oscuro
         scaffoldBackgroundColor: Colors.grey[100], 
         appBarTheme: AppBarTheme(
-          backgroundColor: Colors.blueGrey[900], 
+          backgroundColor: Colors.indigo[900], 
           foregroundColor: Colors.white, 
           elevation: 1,
           centerTitle: true,
@@ -94,28 +105,32 @@ class TechStoreApp extends StatelessWidget {
         ),
         chipTheme: ChipThemeData(
           backgroundColor: Colors.grey[200],
-          selectedColor: Colors.blueGrey[800],
-          secondarySelectedColor: Colors.blueGrey[800],
+          selectedColor: Colors.indigo[800],
+          secondarySelectedColor: Colors.indigo[800],
           labelStyle: const TextStyle(color: Colors.black),
           secondaryLabelStyle: const TextStyle(color: Colors.white),
           shape: const StadiumBorder(),
         ),
         bottomNavigationBarTheme: BottomNavigationBarThemeData(
-          selectedItemColor: Colors.blueGrey[900], 
+          selectedItemColor: Colors.indigo[900], 
           unselectedItemColor: Colors.grey[600], 
           backgroundColor: Colors.white,
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blueGrey[800],
+            backgroundColor: Colors.indigo[800],
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
       ),
       
-      home: const PantallaPrincipal(),
+  
+      home: kIsWeb 
+          ? const AdminLoginPage()      // Si es WEB, muestra el Login de Admin
+          : const PantallaPrincipal(), // Si es MÓVIL, muestra tu tienda
       
+      // Tus rutas de la app móvil (sin cambios)
       routes: {
         '/cart': (context) => const CartScreen(),
         '/login': (context) => const PantallaLogin(),
@@ -123,7 +138,7 @@ class TechStoreApp extends StatelessWidget {
         '/profile': (context) => const PantallaPerfil(),
         '/orders': (context) => const PantallaPedidos(), 
         '/direcciones': (context) => const PantallaDirecciones(),
-        '/wishlist': (context) => const PantallaDeseos(), // ¡¡NUEVA RUTA!!
+        '/wishlist': (context) => const PantallaDeseos(),
       },
     );
   }
