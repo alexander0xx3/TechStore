@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PantallaRegistro extends StatefulWidget {
   const PantallaRegistro({super.key});
@@ -25,22 +26,22 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
   String? _validarFortalezaPassword(String? value) {
     if (value == null || value.isEmpty) return 'Ingresa una contraseña';
     if (value.length < 6) return 'Mínimo 6 caracteres';
-    
+
     final hasUpperCase = RegExp(r'[A-Z]').hasMatch(value);
     final hasLowerCase = RegExp(r'[a-z]').hasMatch(value);
     final hasNumbers = RegExp(r'[0-9]').hasMatch(value);
     final hasSpecialChars = RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(value);
-    
+
     int strength = 0;
     if (hasUpperCase) strength++;
     if (hasLowerCase) strength++;
     if (hasNumbers) strength++;
     if (hasSpecialChars) strength++;
-    
+
     if (strength < 2) {
       return 'Usa mayúsculas, números o símbolos';
     }
-    
+
     return null;
   }
 
@@ -59,15 +60,32 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
     setState(() => _cargando = true);
 
     try {
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+      UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
       if (userCredential.user != null) {
-        await userCredential.user!.updateDisplayName(_nombreController.text.trim());
+        await userCredential.user!
+            .updateDisplayName(_nombreController.text.trim());
+
+        // Crear documento en Firestore
+        await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(userCredential.user!.uid)
+            .set({
+          'nombre': _nombreController.text.trim(),
+          'email': _emailController.text.trim(),
+          'role': 'user', // Rol por defecto
+          'fechaRegistro': FieldValue.serverTimestamp(),
+          'telefono': '',
+          'direccion': '',
+          'imagenUrl': '',
+        });
+
         await userCredential.user!.sendEmailVerification();
-        await userCredential.user!.reload(); 
+        await userCredential.user!.reload();
       }
 
       if (mounted) {
@@ -75,11 +93,10 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
         await _mostrarDialogoExito(context);
         Navigator.pop(context);
       }
-
     } on FirebaseAuthException catch (e) {
       String mensaje = 'Ocurrió un error. Inténtalo de nuevo.';
       String? detalle;
-      
+
       if (e.code == 'weak-password') {
         mensaje = 'La contraseña es muy débil.';
         detalle = 'Usa una combinación de letras, números y símbolos.';
@@ -93,7 +110,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
         mensaje = 'Operación no permitida.';
         detalle = 'Contacta con soporte técnico.';
       }
-      
+
       if (mounted) {
         _mostrarError(context, mensaje, detalle);
       }
@@ -170,24 +187,25 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
 
   Widget _buildPasswordStrengthIndicator(String password) {
     if (password.isEmpty) return const SizedBox();
-    
+
     final hasMinLength = password.length >= 6;
     final hasUpperCase = RegExp(r'[A-Z]').hasMatch(password);
     final hasLowerCase = RegExp(r'[a-z]').hasMatch(password);
     final hasNumbers = RegExp(r'[0-9]').hasMatch(password);
-    final hasSpecialChars = RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password);
-    
+    final hasSpecialChars =
+        RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password);
+
     int strength = 0;
     if (hasUpperCase) strength++;
     if (hasLowerCase) strength++;
     if (hasNumbers) strength++;
     if (hasSpecialChars) strength++;
     if (hasMinLength) strength++;
-    
+
     Color color = Colors.red;
     String text = 'Muy débil';
     double width = 0.2;
-    
+
     if (strength >= 3) {
       color = Colors.orange;
       text = 'Moderada';
@@ -203,7 +221,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
       text = 'Excelente';
       width = 1.0;
     }
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -325,18 +343,21 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                     child: Column(
                       children: [
                         Icon(
-                          Icons.storefront, 
-                          size: 80, 
+                          Icons.storefront,
+                          size: 80,
                           color: Theme.of(context).primaryColor,
                         ),
                         const SizedBox(height: 16),
                         Text(
                           'Únete a TechStore',
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[800],
-                          ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[800],
+                              ),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -355,11 +376,17 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                   // Campo nombre completo
                   TextFormField(
                     controller: _nombreController,
+                    style: const TextStyle(
+                        color: Colors.black87), // Fix text color
                     decoration: InputDecoration(
                       labelText: 'Nombre Completo',
+                      labelStyle: TextStyle(color: Colors.grey[700]),
                       hintText: 'Juan Pérez',
-                      prefixIcon: const Icon(Icons.person_outline),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      hintStyle: TextStyle(color: Colors.grey[400]),
+                      prefixIcon:
+                          const Icon(Icons.person_outline, color: Colors.grey),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       filled: true,
                       fillColor: Colors.white,
                     ),
@@ -379,11 +406,17 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                   // Campo email
                   TextFormField(
                     controller: _emailController,
+                    style: const TextStyle(
+                        color: Colors.black87), // Fix text color
                     decoration: InputDecoration(
                       labelText: 'Email',
+                      labelStyle: TextStyle(color: Colors.grey[700]),
                       hintText: 'tu@email.com',
-                      prefixIcon: const Icon(Icons.email_outlined),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      hintStyle: TextStyle(color: Colors.grey[400]),
+                      prefixIcon:
+                          const Icon(Icons.email_outlined, color: Colors.grey),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       filled: true,
                       fillColor: Colors.white,
                     ),
@@ -392,7 +425,8 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                       if (value == null || value.trim().isEmpty) {
                         return 'Por favor, ingresa tu email';
                       }
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value.trim())) {
+                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                          .hasMatch(value.trim())) {
                         return 'Por favor, ingresa un email válido';
                       }
                       return null;
@@ -404,15 +438,23 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
+                    style: const TextStyle(
+                        color: Colors.black87), // Fix text color
                     decoration: InputDecoration(
                       labelText: 'Contraseña',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      labelStyle: TextStyle(color: Colors.grey[700]),
+                      prefixIcon:
+                          const Icon(Icons.lock_outline, color: Colors.grey),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       filled: true,
                       fillColor: Colors.white,
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: Colors.grey,
                         ),
                         onPressed: () {
                           setState(() {
@@ -431,15 +473,23 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                   TextFormField(
                     controller: _confirmPasswordController,
                     obscureText: _obscureConfirmPassword,
+                    style: const TextStyle(
+                        color: Colors.black87), // Fix text color
                     decoration: InputDecoration(
                       labelText: 'Confirmar Contraseña',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      labelStyle: TextStyle(color: Colors.grey[700]),
+                      prefixIcon:
+                          const Icon(Icons.lock_outline, color: Colors.grey),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       filled: true,
                       fillColor: Colors.white,
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                          _obscureConfirmPassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: Colors.grey,
                         ),
                         onPressed: () {
                           setState(() {
@@ -470,7 +520,8 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                             _terminosAceptados = value ?? false;
                           });
                         },
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4)),
                       ),
                       Expanded(
                         child: Wrap(
@@ -490,7 +541,8 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                                         '3. Derechos y responsabilidades\n'
                                         '4. Política de devoluciones\n'
                                         '5. Limitación de responsabilidad',
-                                        style: TextStyle(color: Colors.grey[700]),
+                                        style:
+                                            TextStyle(color: Colors.grey[700]),
                                       ),
                                     ),
                                     actions: [
@@ -524,16 +576,18 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       backgroundColor: Theme.of(context).primaryColor,
                       foregroundColor: Colors.white,
-                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      textStyle: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w600),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       elevation: 2,
                     ),
                     child: _cargando
                         ? const SizedBox(
-                            width: 20, 
-                            height: 20, 
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
-                          )
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 3))
                         : const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -543,9 +597,9 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                             ],
                           ),
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // Enlace a login
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -553,9 +607,12 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                       const Text('¿Ya tienes cuenta?'),
                       const SizedBox(width: 4),
                       TextButton(
-                        onPressed: _cargando ? null : () {
-                          Navigator.pushReplacementNamed(context, '/login');
-                        },
+                        onPressed: _cargando
+                            ? null
+                            : () {
+                                Navigator.pushReplacementNamed(
+                                    context, '/login');
+                              },
                         child: Text(
                           'Inicia Sesión',
                           style: TextStyle(

@@ -19,7 +19,8 @@ class _CartScreenState extends State<CartScreen> {
   static const double _kTaxRate = 0.18;
 
   // --- ¡NUEVO! Dirección estática de la tienda ---
-  static const String _kTiendaDireccion = "Av. Javier Prado Este 123, San Isidro, Lima";
+  static const String _kTiendaDireccion =
+      "Av. Javier Prado Este 123, San Isidro, Lima";
   static final LatLng _kTiendaLatLng = LatLng(-12.0895, -77.0500);
 
   // --- ¡NUEVO! Variables de estado para la entrega ---
@@ -27,13 +28,14 @@ class _CartScreenState extends State<CartScreen> {
   String? _direccionEntregaSeleccionada;
   LatLng? _latLngEntregaSeleccionado;
 
-
   void _removeProductCompletely(String productId) {
     final current = List<Map<String, dynamic>>.from(cartNotifier.value);
-    cartNotifier.value = current.where((item) => item['id'] != productId).toList();
+    cartNotifier.value =
+        current.where((item) => item['id'] != productId).toList();
   }
 
-  Future<void> _moveToWishlist(BuildContext context, Map<String, dynamic> product) async {
+  Future<void> _moveToWishlist(
+      BuildContext context, Map<String, dynamic> product) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -61,7 +63,7 @@ class _CartScreenState extends State<CartScreen> {
           .set(productData);
 
       _removeProductCompletely(productId);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -119,8 +121,9 @@ class _CartScreenState extends State<CartScreen> {
       },
     );
   }
-  
-  Widget _buildCartItem(BuildContext context, Map<String, dynamic> product, List<Map<String, dynamic>> cartItems) {
+
+  Widget _buildCartItem(BuildContext context, Map<String, dynamic> product,
+      List<Map<String, dynamic>> cartItems) {
     final nombre = product['nombre'] ?? 'Sin nombre';
     final precio = (product['precio'] as num? ?? 0.0).toDouble();
     final imagenUrl = product['imagen'] ?? '';
@@ -131,7 +134,8 @@ class _CartScreenState extends State<CartScreen> {
       key: ValueKey(productId),
       direction: DismissDirection.endToStart,
       background: Container(
-        decoration: BoxDecoration(color: Colors.red[50], borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(
+            color: Colors.red[50], borderRadius: BorderRadius.circular(12)),
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         child: Icon(Icons.delete_outline, color: Colors.red[700], size: 28),
@@ -143,11 +147,15 @@ class _CartScreenState extends State<CartScreen> {
             title: const Text('Eliminar Producto'),
             content: Text('¿Quitar "$nombre" del carrito?'),
             actions: [
-              TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
+              TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancelar')),
               ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red[700]),
+                style:
+                    ElevatedButton.styleFrom(backgroundColor: Colors.red[700]),
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Eliminar', style: TextStyle(color: Colors.white)),
+                child: const Text('Eliminar',
+                    style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
@@ -162,16 +170,23 @@ class _CartScreenState extends State<CartScreen> {
             action: SnackBarAction(
               label: 'DESHACER',
               textColor: Theme.of(context).colorScheme.inversePrimary,
-              onPressed: () { addProductToCart(product); },
+              onPressed: () {
+                addProductToCart(product);
+              },
             ),
           ),
         );
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.15), blurRadius: 6, offset: const Offset(0, 3))],
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 6,
+                offset: const Offset(0, 3))
+          ],
         ),
         child: Padding(
           padding: const EdgeInsets.all(12.0),
@@ -181,9 +196,25 @@ class _CartScreenState extends State<CartScreen> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Image.network(
-                  imagenUrl, width: 70, height: 70, fit: BoxFit.cover,
-                  loadingBuilder: (context, child, p) => p == null ? child : Container(width: 70, height: 70, color: Colors.grey[200], child: const Center(child: CircularProgressIndicator(strokeWidth: 2))),
-                  errorBuilder: (context, error, stackTrace) => Container(width: 70, height: 70, color: Colors.grey[200], child: Icon(Icons.broken_image_outlined, size: 30, color: Colors.grey[400])),
+                  _fixGoogleDriveUrl(imagenUrl),
+                  width: 70,
+                  height: 70,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, p) => p == null
+                      ? child
+                      : Container(
+                          width: 70,
+                          height: 70,
+                          color: Colors.grey[200],
+                          child: const Center(
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2))),
+                  errorBuilder: (context, error, stackTrace) => Container(
+                      width: 70,
+                      height: 70,
+                      color: Colors.grey[200],
+                      child: Icon(Icons.broken_image_outlined,
+                          size: 30, color: Colors.grey[400])),
                 ),
               ),
               const SizedBox(width: 16),
@@ -191,27 +222,45 @@ class _CartScreenState extends State<CartScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(nombre, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15), maxLines: 2, overflow: TextOverflow.ellipsis),
+                    Text(nombre,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 15),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 6),
-                    Text('S/ ${precio.toStringAsFixed(2)}', style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w500, fontSize: 14)),
+                    Text('S/ ${precio.toStringAsFixed(2)}',
+                        style: TextStyle(
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14)),
                     const SizedBox(height: 10),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Row(
                           children: [
-                            _buildQuantityButton(context, Icons.remove, () { removeProductFromCart(product); }),
+                            _buildQuantityButton(context, Icons.remove, () {
+                              removeProductFromCart(product);
+                            }),
                             Container(
-                              width: 35, 
+                              width: 35,
                               alignment: Alignment.center,
-                              child: Text('$quantity', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                              child: Text('$quantity',
+                                  style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600)),
                             ),
-                             _buildQuantityButton(context, Icons.add, () { addProductToCart(product); }, isAdd: true), 
+                            _buildQuantityButton(context, Icons.add, () {
+                              addProductToCart(product);
+                            }, isAdd: true),
                           ],
                         ),
                         Text(
                           'S/ ${(precio * quantity).toStringAsFixed(2)}',
-                           style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: Theme.of(context).primaryColorDark),
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                              color: Theme.of(context).primaryColor),
                         ),
                       ],
                     ),
@@ -219,11 +268,15 @@ class _CartScreenState extends State<CartScreen> {
                     SizedBox(
                       height: 30,
                       child: OutlinedButton.icon(
-                        icon: Icon(Icons.bookmark_add_outlined, size: 16, color: Colors.grey[700]),
-                        label: Text('Mover a Lista de Deseos', style: TextStyle(color: Colors.grey[700], fontSize: 12)),
+                        icon: Icon(Icons.bookmark_add_outlined,
+                            size: 16, color: Colors.grey[600]),
+                        label: Text('Mover a Lista de Deseos',
+                            style: TextStyle(
+                                color: Colors.grey[600], fontSize: 12)),
                         style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: Colors.grey[300]!),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          side: BorderSide(color: Colors.grey[400]!),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
                           padding: const EdgeInsets.symmetric(horizontal: 10),
                         ),
                         onPressed: () {
@@ -242,16 +295,23 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   // --- ¡WIDGET ACTUALIZADO! ---
-  Widget _buildBottomBar(double subtotal, double igv, double totalFinal, int totalItems, BuildContext context) {
+  Widget _buildBottomBar(double subtotal, double igv, double totalFinal,
+      int totalItems, BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [ BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 10, offset: const Offset(0, -3)) ],
-        border: Border(top: BorderSide(color: Colors.grey[200]!, width: 1)), 
+        color: Theme.of(context).scaffoldBackgroundColor,
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 10,
+              offset: const Offset(0, -3))
+        ],
+        border: Border(
+            top: BorderSide(color: Theme.of(context).dividerColor, width: 1)),
       ),
-      padding: const EdgeInsets.all(16.0), 
-      child: SafeArea( 
-        bottom: true, 
+      padding: const EdgeInsets.all(16.0),
+      child: SafeArea(
+        bottom: true,
         top: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -259,16 +319,19 @@ class _CartScreenState extends State<CartScreen> {
             _buildPriceRow("Subtotal:", 'S/ ${subtotal.toStringAsFixed(2)}'),
             const SizedBox(height: 4),
             _buildPriceRow("IGV (18%):", 'S/ ${igv.toStringAsFixed(2)}'),
-            
+
             // --- ¡NUEVA SECCIÓN DE ENTREGA! ---
             if (_tipoEntregaSeleccionado != null)
-              _buildInfoEntregaSeleccionada(context, subtotal, igv, totalFinal, totalItems),
+              _buildInfoEntregaSeleccionada(
+                  context, subtotal, igv, totalFinal, totalItems),
             // --- FIN NUEVA SECCIÓN ---
 
             const SizedBox(height: 4),
             Divider(color: Colors.grey[300]),
             const SizedBox(height: 8),
-            _buildPriceRow("Total a Pagar:", 'S/ ${totalFinal.toStringAsFixed(2)}', isTotal: true),
+            _buildPriceRow(
+                "Total a Pagar:", 'S/ ${totalFinal.toStringAsFixed(2)}',
+                isTotal: true),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
@@ -278,36 +341,39 @@ class _CartScreenState extends State<CartScreen> {
                   final user = FirebaseAuth.instance.currentUser;
                   if (user == null) {
                     Navigator.pushNamed(context, '/login');
-                     ScaffoldMessenger.of(context).showSnackBar(
-                       SnackBar(
-                         content: const Text('Inicia sesión para continuar'), 
-                         backgroundColor: Colors.orange[800],
-                       ),
-                     );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Inicia sesión para continuar'),
+                        backgroundColor: Colors.orange[800],
+                      ),
+                    );
                   } else if (_tipoEntregaSeleccionado == null) {
                     // 1. Si AÚN NO ha seleccionado, muestra el modal de selección
-                    _showMetodoEntregaDialog(context, subtotal, igv, totalFinal, totalItems);
+                    _showMetodoEntregaDialog(
+                        context, subtotal, igv, totalFinal, totalItems);
                   } else {
                     // 2. Si YA seleccionó, muestra la confirmación final
                     _showCheckoutDialog(
                       context, subtotal, igv, totalFinal, totalItems,
                       tipoEntrega: _tipoEntregaSeleccionado!,
-                      direccion: _direccionEntregaSeleccionada, // Pasa la dirección (cliente o tienda)
-                      latLng: _latLngEntregaSeleccionado,     // Pasa el LatLng (cliente o tienda)
+                      direccion:
+                          _direccionEntregaSeleccionada, // Pasa la dirección (cliente o tienda)
+                      latLng:
+                          _latLngEntregaSeleccionado, // Pasa el LatLng (cliente o tienda)
                     );
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16), 
-                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)), 
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  textStyle: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w600),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30)),
                 ),
                 // --- ¡TEXTO DEL BOTÓN ACTUALIZADO! ---
-                child: Text(
-                  _tipoEntregaSeleccionado == null 
-                    ? 'Elegir Método de Entrega' 
-                    : 'Confirmar Pedido'
-                ),
+                child: Text(_tipoEntregaSeleccionado == null
+                    ? 'Elegir Método de Entrega'
+                    : 'Confirmar Pedido'),
               ),
             ),
           ],
@@ -318,7 +384,8 @@ class _CartScreenState extends State<CartScreen> {
 
   // --- ¡NUEVO WIDGET AUXILIAR! ---
   // Muestra la dirección elegida y el botón "Cambiar"
-  Widget _buildInfoEntregaSeleccionada(BuildContext context, double subtotal, double igv, double totalFinal, int totalItems) {
+  Widget _buildInfoEntregaSeleccionada(BuildContext context, double subtotal,
+      double igv, double totalFinal, int totalItems) {
     return Padding(
       padding: const EdgeInsets.only(top: 12.0),
       child: Column(
@@ -333,15 +400,21 @@ class _CartScreenState extends State<CartScreen> {
                 _tipoEntregaSeleccionado == 'Recojo en tienda'
                     ? 'Recogerás en:'
                     : 'Se enviará a:',
-                style: TextStyle(color: Colors.grey[700], fontSize: 14, fontWeight: FontWeight.w500),
+                style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500),
               ),
               // Botón para cambiar la selección
               TextButton(
-                style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
+                style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact),
                 child: const Text('Cambiar'),
                 onPressed: () {
                   // Vuelve a abrir el modal de selección
-                  _showMetodoEntregaDialog(context, subtotal, igv, totalFinal, totalItems);
+                  _showMetodoEntregaDialog(
+                      context, subtotal, igv, totalFinal, totalItems);
                 },
               )
             ],
@@ -351,16 +424,17 @@ class _CartScreenState extends State<CartScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
-                _tipoEntregaSeleccionado == 'Recojo en tienda' 
-                  ? Icons.store_mall_directory_outlined 
-                  : Icons.location_on_outlined,
-                color: Theme.of(context).primaryColorDark, size: 20
-              ),
+                  _tipoEntregaSeleccionado == 'Recojo en tienda'
+                      ? Icons.store_mall_directory_outlined
+                      : Icons.location_on_outlined,
+                  color: Theme.of(context).primaryColor,
+                  size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   _direccionEntregaSeleccionada ?? 'No seleccionada',
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 14),
                 ),
               ),
             ],
@@ -370,15 +444,14 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-
   Widget _buildPriceRow(String label, String amount, {bool isTotal = false}) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          label, 
+          label,
           style: TextStyle(
-            color: Colors.grey[600], 
+            color: Colors.grey[600],
             fontSize: isTotal ? 16 : 14,
             fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
           ),
@@ -386,7 +459,9 @@ class _CartScreenState extends State<CartScreen> {
         Text(
           amount,
           style: TextStyle(
-            color: Colors.black87,
+            color: isTotal
+                ? Theme.of(context).textTheme.bodyLarge?.color
+                : Theme.of(context).textTheme.bodyMedium?.color,
             fontSize: isTotal ? 18 : 14,
             fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
           ),
@@ -397,13 +472,15 @@ class _CartScreenState extends State<CartScreen> {
 
   // --- ¡FUNCIÓN ACTUALIZADA! ---
   // Ahora actualiza el estado en lugar de llamar a _showCheckoutDialog
-  void _showMetodoEntregaDialog(BuildContext context, double subtotal, double igv, double totalFinal, int totalItems) {
+  void _showMetodoEntregaDialog(BuildContext context, double subtotal,
+      double igv, double totalFinal, int totalItems) {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.local_shipping_outlined, color: Theme.of(context).primaryColor),
+            Icon(Icons.local_shipping_outlined,
+                color: Theme.of(context).primaryColor),
             const SizedBox(width: 8),
             const Text('Método de Entrega'),
           ],
@@ -427,8 +504,10 @@ class _CartScreenState extends State<CartScreen> {
                   // --- ¡CAMBIO! Actualiza el estado ---
                   setState(() {
                     _tipoEntregaSeleccionado = 'Recojo en tienda';
-                    _direccionEntregaSeleccionada = _kTiendaDireccion; // Usamos la constante
-                    _latLngEntregaSeleccionado = _kTiendaLatLng;     // Usamos la constante
+                    _direccionEntregaSeleccionada =
+                        _kTiendaDireccion; // Usamos la constante
+                    _latLngEntregaSeleccionado =
+                        _kTiendaLatLng; // Usamos la constante
                   });
                 },
               ),
@@ -444,7 +523,8 @@ class _CartScreenState extends State<CartScreen> {
                 onPressed: () {
                   Navigator.pop(dialogContext); // Cierra este diálogo
                   // --- Llama al nuevo diálogo de selección (esto no cambia) ---
-                  _showSeleccionarDireccionDialog(context, subtotal, igv, totalFinal, totalItems);
+                  _showSeleccionarDireccionDialog(
+                      context, subtotal, igv, totalFinal, totalItems);
                 },
               ),
               const SizedBox(height: 10),
@@ -462,10 +542,14 @@ class _CartScreenState extends State<CartScreen> {
                   // Abre la pantalla de seleccionar ubicación
                   final resultado = await Navigator.push<Map<String, dynamic>>(
                     context,
-                    MaterialPageRoute(builder: (context) => const SeleccionarUbicacionScreen()),
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            const SeleccionarUbicacionScreen()),
                   );
 
-                  if (resultado != null && resultado.containsKey('direccion') && resultado.containsKey('latLng')) {
+                  if (resultado != null &&
+                      resultado.containsKey('direccion') &&
+                      resultado.containsKey('latLng')) {
                     // --- ¡CAMBIO! Actualiza el estado ---
                     setState(() {
                       _tipoEntregaSeleccionado = 'Delivery';
@@ -484,7 +568,8 @@ class _CartScreenState extends State<CartScreen> {
 
   // --- ¡FUNCIÓN ACTUALIZADA! ---
   // Ahora actualiza el estado en lugar de llamar a _showCheckoutDialog
-  void _showSeleccionarDireccionDialog(BuildContext context, double subtotal, double igv, double totalFinal, int totalItems) {
+  void _showSeleccionarDireccionDialog(BuildContext context, double subtotal,
+      double igv, double totalFinal, int totalItems) {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return; // No debería pasar si llegamos aquí
 
@@ -514,7 +599,8 @@ class _CartScreenState extends State<CartScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.location_off_outlined, size: 50, color: Colors.grey[400]),
+                      Icon(Icons.location_off_outlined,
+                          size: 50, color: Colors.grey[400]),
                       const SizedBox(height: 16),
                       const Text(
                         'No tienes direcciones guardadas.',
@@ -530,7 +616,8 @@ class _CartScreenState extends State<CartScreen> {
               return ListView.separated(
                 shrinkWrap: true,
                 itemCount: direcciones.length,
-                separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey[200]),
+                separatorBuilder: (context, index) =>
+                    Divider(height: 1, color: Colors.grey[200]),
                 itemBuilder: (context, index) {
                   final doc = direcciones[index];
                   final data = doc.data() as Map<String, dynamic>;
@@ -538,33 +625,44 @@ class _CartScreenState extends State<CartScreen> {
                   final nombre = data['nombre'] ?? 'Sin nombre';
                   final direccion = data['direccion'] ?? 'Sin dirección';
                   final ciudad = data['ciudad'] ?? 'Sin ciudad';
-                  final GeoPoint? geoPoint = data['ubicacion']; // El campo clave
-                  
+                  final GeoPoint? geoPoint =
+                      data['ubicacion']; // El campo clave
+
                   final bool esValida = geoPoint != null;
 
                   return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 24.0, vertical: 8.0),
                     leading: Icon(
-                      nombre.toLowerCase() == 'casa' ? Icons.home_outlined :
-                      nombre.toLowerCase() == 'oficina' ? Icons.work_outline :
-                      Icons.location_on_outlined,
-                      color: esValida ? Theme.of(context).primaryColor : Colors.grey[400],
+                      nombre.toLowerCase() == 'casa'
+                          ? Icons.home_outlined
+                          : nombre.toLowerCase() == 'oficina'
+                              ? Icons.work_outline
+                              : Icons.location_on_outlined,
+                      color: esValida
+                          ? Theme.of(context).primaryColor
+                          : Colors.grey[400],
                     ),
-                    title: Text(nombre, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    title: Text(nombre,
+                        style: const TextStyle(fontWeight: FontWeight.w600)),
                     subtitle: Text(
                       "$direccion, $ciudad\n${esValida ? '' : '(No válida para delivery)'}",
-                      style: TextStyle(fontSize: 13, color: esValida ? Colors.grey[600] : Colors.red[300]),
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: esValida ? Colors.grey[600] : Colors.red[300]),
                     ),
                     isThreeLine: !esValida,
-                    enabled: esValida, // Deshabilita el ListTile si no hay GeoPoint
+                    enabled:
+                        esValida, // Deshabilita el ListTile si no hay GeoPoint
                     onTap: () {
                       if (!esValida) return; // Doble seguridad
-                      
-                      final LatLng latLng = LatLng(geoPoint!.latitude, geoPoint.longitude);
+
+                      final LatLng latLng =
+                          LatLng(geoPoint.latitude, geoPoint.longitude);
                       final String direccionCompleta = "$direccion, $ciudad";
-                      
+
                       Navigator.pop(dialogContext); // Cierra este diálogo
-                      
+
                       // --- ¡CAMBIO! Actualiza el estado ---
                       setState(() {
                         _tipoEntregaSeleccionado = 'Delivery';
@@ -588,59 +686,66 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-
   // --- ¡FUNCIÓN DE DIÁLOGO DE PAGO FINAL! ---
   // (La firma del método ha cambiado para aceptar los nuevos parámetros)
-  void _showCheckoutDialog(
-    BuildContext context,
-    double subtotal,
-    double igv,
-    double totalFinal,
-    int totalItems, {
-    // Nuevos parámetros requeridos
-    required String tipoEntrega,
-    String? direccion,
-    LatLng? latLng,
-  }) {
+  void _showCheckoutDialog(BuildContext context, double subtotal, double igv,
+      double totalFinal, int totalItems,
+      {required String tipoEntrega,
+      String? direccion,
+      LatLng? latLng} // Parámetros nuevos
+      ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.payment_rounded, color: Theme.of(context).primaryColor),
-            const SizedBox(width: 8),
-            const Text('Confirmar Pedido'),
-          ],
-        ),
-        contentPadding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 16.0),
+        title: const Text('Confirmar Pedido'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Revisa tu pedido antes de confirmar:', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
-            const SizedBox(height: 16),
-            _buildPriceRow("Productos:", '$totalItems'),
-            const SizedBox(height: 8),
-            
-            // --- NUEVA INFORMACIÓN A MOSTRAR ---
-            _buildPriceRow("Método:", tipoEntrega),
-            
-            // Muestra la dirección (de tienda o cliente) si existe
-            if (direccion != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0, left: 8.0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      tipoEntrega == 'Delivery' ? Icons.location_on_outlined : Icons.store_mall_directory_outlined, 
-                      size: 16, color: Colors.grey[600]
+            const Text('Resumen de tu pedido:'),
+            const SizedBox(height: 12),
+
+            // --- NUEVA INFORMACIÓN EN EL RESUMEN ---
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!)),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.shopping_bag_outlined,
+                          size: 16, color: Colors.grey[600]),
+                      const SizedBox(width: 8),
+                      Text('$totalItems productos',
+                          style: TextStyle(
+                              color: Colors.grey[800],
+                              fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  if (direccion != null)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                            tipoEntrega == 'Delivery'
+                                ? Icons.location_on_outlined
+                                : Icons.store_mall_directory_outlined,
+                            size: 16,
+                            color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Expanded(
+                            child: Text(direccion,
+                                style: TextStyle(
+                                    color: Colors.grey[600], fontSize: 13))),
+                      ],
                     ),
-                    const SizedBox(width: 4),
-                    Expanded(child: Text(direccion, style: TextStyle(color: Colors.grey[600], fontSize: 13))),
-                  ],
-                ),
+                ],
               ),
+            ),
             // --- FIN DE NUEVA INFORMACIÓN ---
 
             const SizedBox(height: 8),
@@ -648,10 +753,12 @@ class _CartScreenState extends State<CartScreen> {
             const SizedBox(height: 8),
             _buildPriceRow("IGV (18%):", 'S/ ${igv.toStringAsFixed(2)}'),
             const Divider(height: 16),
-            _buildPriceRow("Total:", 'S/ ${totalFinal.toStringAsFixed(2)}', isTotal: true),
+            _buildPriceRow("Total:", 'S/ ${totalFinal.toStringAsFixed(2)}',
+                isTotal: true),
           ],
         ),
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        actionsPadding:
+            const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -664,7 +771,8 @@ class _CartScreenState extends State<CartScreen> {
               backgroundColor: Theme.of(context).primaryColorDark,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () async {
               final navigator = Navigator.of(context);
@@ -672,27 +780,34 @@ class _CartScreenState extends State<CartScreen> {
               navigator.pop(); // Cierra el diálogo de confirmación
 
               final user = FirebaseAuth.instance.currentUser;
-              if (user == null) { 
+              if (user == null) {
                 scaffoldMessenger.showSnackBar(
                   SnackBar(
-                    content: const Row(children: [Icon(Icons.error_outline, color: Colors.white), SizedBox(width: 8), Text('Debes iniciar sesión')]),
+                    content: const Row(children: [
+                      Icon(Icons.error_outline, color: Colors.white),
+                      SizedBox(width: 8),
+                      Text('Debes iniciar sesión')
+                    ]),
                     backgroundColor: Colors.red[700],
                   ),
                 );
                 navigator.pushNamed('/login');
-                return; 
+                return;
               }
 
               final timestamp = DateTime.now().millisecondsSinceEpoch;
-              final userIdShort = user.uid.length >= 6 ? user.uid.substring(0, 6) : user.uid;
+              final userIdShort =
+                  user.uid.length >= 6 ? user.uid.substring(0, 6) : user.uid;
               final pedidoId = 'ORD-$timestamp-$userIdShort';
-              final fechaPedido = Timestamp.now(); 
-              final List<Map<String, dynamic>> itemsPedido = cartNotifier.value.map((item) => Map<String, dynamic>.from(item)).toList(); 
+              final fechaPedido = Timestamp.now();
+              final List<Map<String, dynamic>> itemsPedido = cartNotifier.value
+                  .map((item) => Map<String, dynamic>.from(item))
+                  .toList();
 
               // Muestra el diálogo de "Procesando"
               showDialog(
-                context: context, 
-                barrierDismissible: false, 
+                context: context,
+                barrierDismissible: false,
                 builder: (dialogContext) => WillPopScope(
                   onWillPop: () async => false,
                   child: const Center(
@@ -715,7 +830,10 @@ class _CartScreenState extends State<CartScreen> {
 
               try {
                 // --- ¡LÓGICA DE GUARDADO EN FIRESTORE ACTUALIZADA! ---
-                await FirebaseFirestore.instance.collection('Pedidos').doc(pedidoId).set({
+                await FirebaseFirestore.instance
+                    .collection('Pedidos')
+                    .doc(pedidoId)
+                    .set({
                   'userId': user.uid,
                   'userEmail': user.email ?? 'Sin email',
                   'userName': user.displayName ?? 'Usuario',
@@ -725,21 +843,29 @@ class _CartScreenState extends State<CartScreen> {
                   'igv': igv,
                   'total': totalFinal,
                   'itemsCount': totalItems,
-                  'estado': 'Procesando', 
-                  'productos': itemsPedido.map((item) => { 
-                      'id': item['id'] ?? '',
-                      'nombre': item['nombre'] ?? 'Producto sin nombre',
-                      'precio': (item['precio'] as num?)?.toDouble() ?? 0.0,
-                      'quantity': (item['quantity'] as num?)?.toInt() ?? 1,
-                      'imagen': item['imagen'] ?? '',
-                  }).toList(), 
+                  'estado': 'Pendiente',
+                  'productos': itemsPedido
+                      .map((item) => {
+                            'id': item['id'] ?? '',
+                            'nombre': item['nombre'] ?? 'Producto sin nombre',
+                            'precio':
+                                (item['precio'] as num?)?.toDouble() ?? 0.0,
+                            'quantity':
+                                (item['quantity'] as num?)?.toInt() ?? 1,
+                            'imagen': item['imagen'] ?? '',
+                          })
+                      .toList(),
                   'createdAt': FieldValue.serverTimestamp(),
-                  
+
                   // --- CAMPOS NUEVOS SIMPLIFICADOS ---
                   'tipoEntrega': tipoEntrega, // "Delivery" o "Recojo en tienda"
-                  'direccionEntrega': direccion, // Guarda la dirección (cliente o tienda)
+                  'direccionEntrega':
+                      direccion, // Guarda la dirección (cliente o tienda)
                   'latLngEntrega': latLng != null
-                      ? GeoPoint(latLng.latitude, latLng.longitude) // Guarda el GeoPoint (cliente o tienda)
+                      ? GeoPoint(
+                          latLng.latitude,
+                          latLng
+                              .longitude) // Guarda el GeoPoint (cliente o tienda)
                       : null,
                 });
                 // --- FIN DE CAMPOS NUEVOS ---
@@ -751,11 +877,17 @@ class _CartScreenState extends State<CartScreen> {
                     content: const Row(children: [
                       Icon(Icons.check_circle, color: Colors.white),
                       SizedBox(width: 8),
-                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                        Text('¡Pedido realizado con éxito!', style: TextStyle(fontWeight: FontWeight.w600)),
-                        SizedBox(height: 4),
-                        Text('Puedes ver tu pedido en "Mis Pedidos"', style: TextStyle(fontSize: 12)),
-                      ])),
+                      Expanded(
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                            Text('¡Pedido realizado con éxito!',
+                                style: TextStyle(fontWeight: FontWeight.w600)),
+                            SizedBox(height: 4),
+                            Text('Puedes ver tu pedido en "Mis Pedidos"',
+                                style: TextStyle(fontSize: 12)),
+                          ])),
                     ]),
                     backgroundColor: Colors.green[700],
                     duration: const Duration(seconds: 4),
@@ -763,7 +895,9 @@ class _CartScreenState extends State<CartScreen> {
                     action: SnackBarAction(
                       label: 'Ver',
                       textColor: Colors.white,
-                      onPressed: () { navigator.pushNamed('/orders'); },
+                      onPressed: () {
+                        navigator.pushNamed('/orders');
+                      },
                     ),
                   ),
                 );
@@ -772,12 +906,24 @@ class _CartScreenState extends State<CartScreen> {
                 navigator.pop(); // Cerrar indicador de carga
                 scaffoldMessenger.showSnackBar(
                   SnackBar(
-                    content: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                      const Row(children: [Icon(Icons.error_outline, color: Colors.white), SizedBox(width: 8), Text('Error al procesar el pedido', style: TextStyle(fontWeight: FontWeight.w600))]),
-                      const SizedBox(height: 8),
-                      const Text('Por favor, intenta nuevamente.', style: TextStyle(fontSize: 12)),
-                      Text('Error: ${e.toString()}', style: const TextStyle(fontSize: 10), maxLines: 2, overflow: TextOverflow.ellipsis),
-                    ]),
+                    content: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Row(children: [
+                            Icon(Icons.error_outline, color: Colors.white),
+                            SizedBox(width: 8),
+                            Text('Error al procesar el pedido',
+                                style: TextStyle(fontWeight: FontWeight.w600))
+                          ]),
+                          const SizedBox(height: 8),
+                          const Text('Por favor, intenta nuevamente.',
+                              style: TextStyle(fontSize: 12)),
+                          Text('Error: ${e.toString()}',
+                              style: const TextStyle(fontSize: 10),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis),
+                        ]),
                     backgroundColor: Colors.red[700],
                     duration: const Duration(seconds: 6),
                     behavior: SnackBarBehavior.floating,
@@ -800,26 +946,34 @@ class _CartScreenState extends State<CartScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(Icons.shopping_cart_checkout_rounded, size: 120, color: Colors.grey[350]),
+            Icon(Icons.shopping_cart_checkout_rounded,
+                size: 120, color: Colors.grey[350]),
             const SizedBox(height: 24),
             Text(
               'Tu carrito está vacío',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: Colors.grey[700]),
+              style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700]),
             ),
             const SizedBox(height: 12),
             Text(
               'Agrega algunos productos increíbles\npara comenzar a comprar.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: Colors.grey[500], height: 1.4),
+              style:
+                  TextStyle(fontSize: 16, color: Colors.grey[500], height: 1.4),
             ),
             const SizedBox(height: 32),
             ElevatedButton.icon(
               icon: const Icon(Icons.explore_outlined),
               label: const Text('Explorar Productos'),
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                textStyle:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30)),
               ),
               onPressed: () {
                 widget.onExplore?.call();
@@ -831,16 +985,16 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  Widget _buildCartList(List<Map<String, dynamic>> cartItems, BuildContext context) {
+  Widget _buildCartList(
+      List<Map<String, dynamic>> cartItems, BuildContext context) {
     return Column(
       children: [
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: Theme.of(context).primaryColor.withOpacity(0.08),
-             border: Border(bottom: BorderSide(color: Colors.grey[300]!))
-          ),
+              color: Theme.of(context).primaryColor.withOpacity(0.08),
+              border: Border(bottom: BorderSide(color: Colors.grey[300]!))),
           child: Text(
             '${getCartTotalItemCount()} ${getCartTotalItemCount() == 1 ? 'producto' : 'productos'} en tu carrito',
             style: TextStyle(
@@ -863,20 +1017,43 @@ class _CartScreenState extends State<CartScreen> {
       ],
     );
   }
-  
-  Widget _buildQuantityButton(BuildContext context, IconData icon, VoidCallback onPressed, {bool isAdd = false}) {
-     return InkWell(
+
+  Widget _buildQuantityButton(
+      BuildContext context, IconData icon, VoidCallback onPressed,
+      {bool isAdd = false}) {
+    return InkWell(
       onTap: onPressed,
       borderRadius: BorderRadius.circular(6),
       child: Container(
-        width: 30, height: 30,
+        width: 30,
+        height: 30,
         decoration: BoxDecoration(
-          color: isAdd ? Theme.of(context).primaryColor.withOpacity(0.15) : Colors.grey[200], 
-          borderRadius: BorderRadius.circular(6),
-           border: Border.all(color: isAdd ? Theme.of(context).primaryColor.withOpacity(0.3) : Colors.grey[300]!, width: 1)
-        ),
-        child: Icon(icon, size: 16, color: isAdd ? Theme.of(context).primaryColor : Colors.grey[700]),
+            color: isAdd
+                ? Theme.of(context).primaryColor.withOpacity(0.15)
+                : Colors.grey[200],
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+                color: isAdd
+                    ? Theme.of(context).primaryColor.withOpacity(0.3)
+                    : Colors.grey[300]!,
+                width: 1)),
+        child: Icon(icon,
+            size: 16,
+            color: isAdd ? Theme.of(context).primaryColor : Colors.grey[700]),
       ),
     );
+  }
+
+  String _fixGoogleDriveUrl(String url) {
+    if (url.contains('drive.google.com')) {
+      final idRegex = RegExp(r'\/d\/([a-zA-Z0-9_-]+)');
+      final match = idRegex.firstMatch(url);
+      if (match != null) {
+        final fileId = match.group(1);
+        // Usar proxy wsrv.nl para evitar CORS en Web
+        return 'https://wsrv.nl/?url=https://drive.google.com/uc?id=$fileId';
+      }
+    }
+    return url;
   }
 }

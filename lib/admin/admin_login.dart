@@ -1,292 +1,333 @@
-
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'admin_dashboard.dart';
 
-class AdminLoginPage extends StatefulWidget {
-  const AdminLoginPage({super.key});
+class AdminLoginScreen extends StatefulWidget {
+  const AdminLoginScreen({super.key});
 
   @override
-  State<AdminLoginPage> createState() => _AdminLoginPageState();
+  State<AdminLoginScreen> createState() => _AdminLoginScreenState();
 }
 
-class _AdminLoginPageState extends State<AdminLoginPage> {
+class _AdminLoginScreenState extends State<AdminLoginScreen>
+    with SingleTickerProviderStateMixin {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _auth = FirebaseAuth.instance;
-  String _errorMessage = '';
   bool _isLoading = false;
-  bool _obscurePassword = true;
+  bool _isObscure = true;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+            CurvedAnimation(
+                parent: _animationController, curve: Curves.easeOutCubic));
+
+    _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   Future<void> _login() async {
-    setState(() { 
-      _isLoading = true; 
-      _errorMessage = ''; 
-    });
-    
-    // Validación básica
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      setState(() {
-        _errorMessage = 'Por favor, completa todos los campos';
-        _isLoading = false;
-      });
+      _showError('Por favor complete todos los campos');
       return;
     }
 
+    setState(() => _isLoading = true);
+
     try {
-      final userCredential = await _auth.signInWithEmailAndPassword(
+      // 1. Autenticar con Firebase Auth
+      print('Intentando login con: ${_emailController.text.trim()}');
+      final userCredential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+      print('Auth exitoso. UID: ${userCredential.user?.uid}');
 
-      if (userCredential.user == null) {
-        throw Exception('No se pudo obtener el usuario.');
-      }
-
-      // Verificar el rol de administrador
+      // 2. Verificar rol de admin en Firestore
       final userDoc = await FirebaseFirestore.instance
-          .collection('Usuarios')
+          .collection('Users')
           .doc(userCredential.user!.uid)
           .get();
 
+      print('Documento existe: ${userDoc.exists}');
       if (!userDoc.exists) {
-        throw Exception('El usuario no existe en la base de datos.');
+        print('ERROR: Documento de usuario no encontrado en Firestore');
+        await FirebaseAuth.instance.signOut();
+        _showError('Usuario no encontrado en base de datos');
+        return;
       }
 
-      final data = userDoc.data() as Map<String, dynamic>;
-      final userRole = data['role'] as String?;
+      final userData = userDoc.data() as Map<String, dynamic>;
+      print('Datos de usuario: $userData');
 
-      if (userRole == 'admin') {
-        // Éxito! Navega al Dashboard.
-        if (context.mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
-          );
-        }
-      } else {
-        await _auth.signOut();
-        throw Exception('No tienes permisos de administrador.');
+      // VALIDACIÓN ESTRICTA (Recomendado):
+      if (userData['role'] != 'admin') {
+        print('ERROR: Rol no es admin. Rol actual: ${userData['role']}');
+        await FirebaseAuth.instance.signOut();
+        _showError('No tienes permisos de administrador');
+        return;
       }
 
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+        );
+      }
     } on FirebaseAuthException catch (e) {
-      String errorMessage = 'Error de autenticación';
-      if (e.code == 'user-not-found') {
-        errorMessage = 'No se encontró una cuenta con este email';
-      } else if (e.code == 'wrong-password') {
-        errorMessage = 'Contraseña incorrecta';
-      } else if (e.code == 'invalid-email') {
-        errorMessage = 'Email inválido';
-      }
-      setState(() { _errorMessage = errorMessage; });
+      print('Firebase Auth Error: ${e.code} - ${e.message}');
+      String message = 'Error de autenticación';
+      if (e.code == 'user-not-found') message = 'Usuario no encontrado en Auth';
+      if (e.code == 'wrong-password') message = 'Contraseña incorrecta';
+      _showError(message);
     } catch (e) {
-      setState(() { _errorMessage = 'Error: ${e.toString()}'; });
+      print('Error general: $e');
+      _showError('Error: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-    setState(() { _isLoading = false; });
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Text(message),
+          ],
+        ),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(20),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFf8fafc),
+      backgroundColor: Colors.grey[50], // Fondo claro
       body: Center(
         child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Column(
-                children: [
-                  // Logo and Welcome
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [Colors.deepPurple, Colors.purple],
-                            ),
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.deepPurple.withOpacity(0.3),
-                                blurRadius: 15,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
+          padding: const EdgeInsets.all(24),
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: SlideTransition(
+              position: _slideAnimation,
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 450),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Logo o Icono Animado
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.blue.withOpacity(0.1),
+                            blurRadius: 20,
+                            spreadRadius: 5,
                           ),
-                          child: const Icon(
-                            Icons.admin_panel_settings,
-                            color: Colors.white,
-                            size: 40,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Text(
-                          'TechStore Admin',
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.deepPurple,
-                              ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Panel de Administración',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 16,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.admin_panel_settings,
+                        size: 64,
+                        color: Color(0xFF2563EB), // Azul moderno
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 32),
 
-                  // Login Form
-                  Card(
-                    elevation: 8,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    shadowColor: Colors.black.withOpacity(0.1),
-                    child: Padding(
-                      padding: const EdgeInsets.all(32.0),
+                    // Tarjeta de Login
+                    Container(
+                      padding: const EdgeInsets.all(40),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 30,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Text(
-                            'Iniciar Sesión',
-                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
-                                ),
+                          const Text(
+                            'Bienvenido',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                              letterSpacing: -0.5,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Ingresa tus credenciales de administrador',
-                            style: TextStyle(color: Colors.grey[600]),
+                            'Ingresa a tu panel de control',
                             textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[500],
+                            ),
                           ),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 40),
 
-                          // Email Field
-                          TextField(
+                          // Email Input
+                          TextFormField(
                             controller: _emailController,
+                            style: const TextStyle(
+                                fontSize: 15, color: Colors.black87),
                             decoration: InputDecoration(
-                              labelText: 'Email de Administrador',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              labelText: 'Correo Electrónico',
+                              labelStyle: TextStyle(color: Colors.grey[600]),
+                              hintText: 'ejemplo@empresa.com',
+                              hintStyle: TextStyle(color: Colors.grey[400]),
+                              prefixIcon: Icon(Icons.email_outlined,
+                                  color: Colors.grey[400], size: 20),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide:
+                                    BorderSide(color: Colors.grey[200]!),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide:
+                                    BorderSide(color: Colors.grey[200]!),
+                              ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Colors.deepPurple, width: 2),
+                                borderSide: const BorderSide(
+                                    color: Color(0xFF2563EB), width: 2),
                               ),
-                              prefixIcon: const Icon(Icons.email, color: Colors.deepPurple),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                              filled: true,
+                              fillColor: Colors.grey[50],
+                              contentPadding: const EdgeInsets.all(20),
                             ),
-                            keyboardType: TextInputType.emailAddress,
                           ),
                           const SizedBox(height: 20),
 
-                          // Password Field
-                          TextField(
+                          // Password Input
+                          TextFormField(
                             controller: _passwordController,
-                            obscureText: _obscurePassword,
+                            obscureText: _isObscure,
+                            style: const TextStyle(
+                                fontSize: 15, color: Colors.black87),
                             decoration: InputDecoration(
                               labelText: 'Contraseña',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Colors.deepPurple, width: 2),
-                              ),
-                              prefixIcon: const Icon(Icons.lock, color: Colors.deepPurple),
+                              labelStyle: TextStyle(color: Colors.grey[600]),
+                              prefixIcon: Icon(Icons.lock_outline,
+                                  color: Colors.grey[400], size: 20),
                               suffixIcon: IconButton(
                                 icon: Icon(
-                                  _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                                  color: Colors.grey,
+                                  _isObscure
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                  color: Colors.grey[400],
+                                  size: 20,
                                 ),
-                                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                onPressed: () =>
+                                    setState(() => _isObscure = !_isObscure),
                               ),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Error Message
-                          if (_errorMessage.isNotEmpty)
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.red.shade50,
+                              border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.red.shade100),
+                                borderSide:
+                                    BorderSide(color: Colors.grey[200]!),
                               ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.error_outline, color: Colors.red.shade400, size: 20),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      _errorMessage,
-                                      style: TextStyle(color: Colors.red.shade700),
-                                    ),
-                                  ),
-                                ],
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide:
+                                    BorderSide(color: Colors.grey[200]!),
                               ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                    color: Color(0xFF2563EB), width: 2),
+                              ),
+                              filled: true,
+                              fillColor: Colors.grey[50],
+                              contentPadding: const EdgeInsets.all(20),
                             ),
-                          
-                          if (_errorMessage.isNotEmpty) const SizedBox(height: 16),
+                            onFieldSubmitted: (_) => _login(),
+                          ),
+                          const SizedBox(height: 32),
 
                           // Login Button
                           SizedBox(
-                            width: double.infinity,
-                            height: 54,
+                            height: 56,
                             child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.deepPurple,
-                                foregroundColor: Colors.white,
-                                elevation: 4,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                              ),
                               onPressed: _isLoading ? null : _login,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF2563EB),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
                               child: _isLoading
                                   ? const SizedBox(
-                                      width: 20, height: 20,
-                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                      height: 24,
+                                      width: 24,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2.5,
+                                      ),
                                     )
                                   : const Text(
-                                      'Ingresar al Panel',
-                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                      'Iniciar Sesión',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Help Text
-                          Text(
-                            'Solo personal autorizado',
-                            style: TextStyle(
-                              color: Colors.grey[500],
-                              fontSize: 12,
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ),
 
-                  // Footer
-                  const SizedBox(height: 40),
-                  Text(
-                    'TechStore © 2025',
-                    style: TextStyle(
-                      color: Colors.grey[400],
-                      fontSize: 12,
+                    const SizedBox(height: 32),
+                    Text(
+                      '© 2025 TechStore Admin',
+                      style: TextStyle(
+                        color: Colors.grey[400],
+                        fontSize: 12,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter_svg/flutter_svg.dart'; // ¡Importante para el logo de Google!
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PantallaLogin extends StatefulWidget {
   const PantallaLogin({super.key});
@@ -22,7 +23,6 @@ class _PantallaLoginState extends State<PantallaLogin> {
   bool _obscureText = true;
 
   // --- LÓGICA DE AUTENTICACIÓN ---
-  // (Toda tu lógica original y la de Google se mantiene aquí)
 
   Future<void> _iniciarSesionConGoogle() async {
     setState(() => _cargando = true);
@@ -38,7 +38,33 @@ class _PantallaLoginState extends State<PantallaLogin> {
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
-      await _auth.signInWithCredential(credential);
+      final UserCredential userCredential =
+          await _auth.signInWithCredential(credential);
+      final User? user = userCredential.user;
+
+      if (user != null) {
+        // Verificar si el usuario ya existe en Firestore
+        final userDoc = await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(user.uid)
+            .get();
+
+        if (!userDoc.exists) {
+          // Si no existe, crearlo
+          await FirebaseFirestore.instance
+              .collection('Users')
+              .doc(user.uid)
+              .set({
+            'nombre': user.displayName ?? 'Usuario de Google',
+            'email': user.email ?? '',
+            'role': 'user', // Rol por defecto
+            'fechaRegistro': FieldValue.serverTimestamp(),
+            'telefono': user.phoneNumber ?? '',
+            'direccion': '',
+            'imagenUrl': user.photoURL ?? '',
+          });
+        }
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -51,7 +77,8 @@ class _PantallaLoginState extends State<PantallaLogin> {
       }
     } catch (e) {
       if (mounted) {
-        _mostrarError(context, 'Error de Google Sign-In', e.toString(), null, null);
+        _mostrarError(
+            context, 'Error de Google Sign-In', e.toString(), null, null);
       }
     } finally {
       if (mounted) setState(() => _cargando = false);
@@ -81,7 +108,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
       String? detalle;
       String? accion;
       VoidCallback? onAccion;
-      
+
       if (e.code == 'user-not-found') {
         mensaje = 'No se encontró una cuenta con ese email.';
         detalle = '¿Quieres crear una nueva cuenta?';
@@ -93,7 +120,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
       } else {
         mensaje = e.message ?? 'Error desconocido.';
       }
-      
+
       if (mounted) {
         _mostrarError(context, mensaje, detalle, accion, onAccion);
       }
@@ -131,7 +158,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
   Future<void> _mostrarRecuperarPassword() async {
     final email = _emailController.text.trim();
     final controller = TextEditingController(text: email);
-    
+
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -139,11 +166,13 @@ class _PantallaLoginState extends State<PantallaLogin> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Ingresa tu email para enviar un enlace de recuperación:'),
+            const Text(
+                'Ingresa tu email para enviar un enlace de recuperación:'),
             const SizedBox(height: 16),
             TextFormField(
               controller: controller,
-              decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                  labelText: 'Email', border: OutlineInputBorder()),
               keyboardType: TextInputType.emailAddress,
             ),
           ],
@@ -157,20 +186,23 @@ class _PantallaLoginState extends State<PantallaLogin> {
             onPressed: () async {
               if (controller.text.trim().isEmpty) return;
               try {
-                await _auth.sendPasswordResetEmail(email: controller.text.trim());
+                await _auth.sendPasswordResetEmail(
+                    email: controller.text.trim());
                 if (mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Email de recuperación enviado a ${controller.text.trim()}'),
+                      content: Text(
+                          'Email de recuperación enviado a ${controller.text.trim()}'),
                       backgroundColor: Colors.green[700],
                     ),
                   );
                 }
               } catch (e) {
-                 if (mounted) {
+                if (mounted) {
                   Navigator.pop(context);
-                  _mostrarError(context, 'Error al enviar email', e.toString(), null, null);
+                  _mostrarError(context, 'Error al enviar email', e.toString(),
+                      null, null);
                 }
               }
             },
@@ -192,7 +224,6 @@ class _PantallaLoginState extends State<PantallaLogin> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // === VUELVE EL APPBAR ===
       appBar: AppBar(
         title: const Text('Iniciar Sesión'),
         backgroundColor: Theme.of(context).primaryColor,
@@ -203,7 +234,6 @@ class _PantallaLoginState extends State<PantallaLogin> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      // === VUELVE EL GRADIENTE ===
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -224,7 +254,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // === VUELVE LA TARJETA BLANCA ===
+                  // Tarjeta de Bienvenida
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -241,18 +271,21 @@ class _PantallaLoginState extends State<PantallaLogin> {
                     child: Column(
                       children: [
                         Icon(
-                          Icons.storefront, 
-                          size: 80, 
+                          Icons.storefront,
+                          size: 80,
                           color: Theme.of(context).primaryColor,
                         ),
                         const SizedBox(height: 16),
                         Text(
                           'Bienvenido a TechStore',
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[800],
-                          ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[800],
+                              ),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -271,11 +304,17 @@ class _PantallaLoginState extends State<PantallaLogin> {
                   // Campo email
                   TextFormField(
                     controller: _emailController,
+                    style: const TextStyle(
+                        color: Colors.black87), // Fix text color
                     decoration: InputDecoration(
                       labelText: 'Email',
+                      labelStyle: TextStyle(color: Colors.grey[700]),
                       hintText: 'tu@email.com',
-                      prefixIcon: const Icon(Icons.email_outlined),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      hintStyle: TextStyle(color: Colors.grey[400]),
+                      prefixIcon:
+                          const Icon(Icons.email_outlined, color: Colors.grey),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       filled: true,
                       fillColor: Colors.white,
                     ),
@@ -284,7 +323,8 @@ class _PantallaLoginState extends State<PantallaLogin> {
                       if (value == null || value.trim().isEmpty) {
                         return 'Por favor, ingresa tu email';
                       }
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value.trim())) {
+                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                          .hasMatch(value.trim())) {
                         return 'Por favor, ingresa un email válido';
                       }
                       return null;
@@ -296,15 +336,23 @@ class _PantallaLoginState extends State<PantallaLogin> {
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscureText,
+                    style: const TextStyle(
+                        color: Colors.black87), // Fix text color
                     decoration: InputDecoration(
                       labelText: 'Contraseña',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      labelStyle: TextStyle(color: Colors.grey[700]),
+                      prefixIcon:
+                          const Icon(Icons.lock_outline, color: Colors.grey),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       filled: true,
                       fillColor: Colors.white,
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscureText ? Icons.visibility_off : Icons.visibility,
+                          _obscureText
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: Colors.grey,
                         ),
                         onPressed: () {
                           setState(() {
@@ -322,7 +370,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
                   ),
                   const SizedBox(height: 8),
 
-                  // === MEJORA: Solo "Olvidaste contraseña" ===
+                  // Botón Olvidaste contraseña
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
@@ -345,16 +393,18 @@ class _PantallaLoginState extends State<PantallaLogin> {
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       backgroundColor: Theme.of(context).primaryColor,
                       foregroundColor: Colors.white,
-                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      textStyle: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w600),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       elevation: 2,
                     ),
                     child: _cargando
                         ? const SizedBox(
-                            width: 20, 
-                            height: 20, 
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
-                          )
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 3))
                         : const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -364,36 +414,37 @@ class _PantallaLoginState extends State<PantallaLogin> {
                             ],
                           ),
                   ),
-                  
+
                   const SizedBox(height: 16),
 
-                  // === MEJORA: Botón de Google aquí ===
+                  // Botón de Google
                   OutlinedButton(
                     onPressed: _cargando ? null : _iniciarSesionConGoogle,
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       foregroundColor: Colors.grey[800],
-                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      textStyle: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w600),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       side: BorderSide(color: Colors.grey[400]!),
                       backgroundColor: Colors.white,
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // ¡Usando SvgPicture para evitar errores!
                         SvgPicture.network(
-                      'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg',
-                      height: 20,
+                          'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg',
+                          height: 20,
                         ),
                         const SizedBox(width: 12),
                         const Text('Continuar con Google'),
                       ],
                     ),
                   ),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Divisor
                   Row(
                     children: [
@@ -415,19 +466,24 @@ class _PantallaLoginState extends State<PantallaLogin> {
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // Botón de registro
                   OutlinedButton(
-                    onPressed: _cargando ? null : () {
-                      Navigator.pushReplacementNamed(context, '/register');
-                    },
+                    onPressed: _cargando
+                        ? null
+                        : () {
+                            Navigator.pushReplacementNamed(
+                                context, '/register');
+                          },
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       foregroundColor: Theme.of(context).primaryColor,
-                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      textStyle: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w600),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       side: BorderSide(color: Theme.of(context).primaryColor),
                     ),
                     child: const Row(
@@ -439,7 +495,6 @@ class _PantallaLoginState extends State<PantallaLogin> {
                       ],
                     ),
                   ),
-                  // === MEJORA: Caja de información eliminada ===
                 ],
               ),
             ),

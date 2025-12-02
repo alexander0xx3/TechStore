@@ -1,12 +1,11 @@
-// admin_dashboard.dart - VERSIÓN MEJORADA
-import 'package:flutter_admin_scaffold/admin_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 import 'admin_home.dart';
 import 'admin_pedidos.dart';
 import 'admin_productos.dart';
 import 'admin_login.dart';
+import 'admin_soporte.dart';
+import 'admin_usuarios.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -22,173 +21,238 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   void _navigateTo(String route) {
     setState(() {
       _selectedRoute = route;
-      if (route == AdminHomeScreen.routeName) {
-        _selectedScreen = const AdminHomeScreen();
-      } else if (route == AdminPedidosScreen.routeName) {
-        _selectedScreen = const AdminPedidosScreen();
-      } else if (route == AdminProductosScreen.routeName) {
-        _selectedScreen = const AdminProductosScreen();
+      switch (route) {
+        case AdminHomeScreen.routeName:
+          _selectedScreen = const AdminHomeScreen();
+          break;
+        case AdminPedidosScreen.routeName:
+          _selectedScreen = const AdminPedidosScreen();
+          break;
+        case AdminProductosScreen.routeName:
+          _selectedScreen = const AdminProductosScreen();
+          break;
+        case AdminSoporteScreen.routeName:
+          _selectedScreen = const AdminSoporteScreen();
+          break;
+        case AdminUsuariosScreen.routeName:
+          _selectedScreen = const AdminUsuariosScreen();
+          break;
       }
     });
   }
 
   Future<void> _logout() async {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cerrar Sesión'),
-        content: const Text('¿Estás seguro de que quieres cerrar sesión?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
+    await FirebaseAuth.instance.signOut();
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Usamos LayoutBuilder para responsive si es necesario,
+    // pero por ahora mantenemos la estructura Row para web desktop.
+    return Scaffold(
+      backgroundColor: Colors.grey[50], // Fondo general claro
+      body: Row(
+        children: [
+          // SIDEBAR
+          Container(
+            width: 280,
+            decoration: BoxDecoration(
+              color: Colors.white, // Sidebar blanca
+              border: Border(
+                right: BorderSide(color: Colors.grey[200]!),
+              ),
+            ),
+            child: Column(
+              children: [
+                // Logo Area
+                Container(
+                  padding: const EdgeInsets.all(32),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2563EB), // Azul primario
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.store,
+                            color: Colors.white, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'TechStore',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Menu Items
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    children: [
+                      _buildMenuItem(
+                        title: 'Dashboard',
+                        route: AdminHomeScreen.routeName,
+                        icon: Icons.dashboard_outlined,
+                        selectedIcon: Icons.dashboard,
+                      ),
+                      const SizedBox(height: 4),
+                      _buildMenuItem(
+                        title: 'Productos',
+                        route: AdminProductosScreen.routeName,
+                        icon: Icons.inventory_2_outlined,
+                        selectedIcon: Icons.inventory_2,
+                      ),
+                      const SizedBox(height: 4),
+                      _buildMenuItem(
+                        title: 'Pedidos',
+                        route: AdminPedidosScreen.routeName,
+                        icon: Icons.shopping_bag_outlined,
+                        selectedIcon: Icons.shopping_bag,
+                      ),
+                      const SizedBox(height: 4),
+                      _buildMenuItem(
+                        title: 'Usuarios',
+                        route: AdminUsuariosScreen.routeName,
+                        icon: Icons.people_outline,
+                        selectedIcon: Icons.people,
+                      ),
+                      const SizedBox(height: 4),
+                      _buildMenuItem(
+                        title: 'Soporte',
+                        route: AdminSoporteScreen.routeName,
+                        icon: Icons.support_agent_outlined,
+                        selectedIcon: Icons.support_agent,
+                      ),
+                    ],
+                  ),
+                ),
+
+                // User Profile / Logout
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: Colors.grey[100]!),
+                    ),
+                  ),
+                  child: InkWell(
+                    onTap: _logout,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.logout,
+                              color: Colors.redAccent, size: 20),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Cerrar Sesión',
+                            style: TextStyle(
+                              color: Colors.redAccent,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () async {
-              Navigator.of(context).pop();
-              await FirebaseAuth.instance.signOut();
-              if (context.mounted) {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => const AdminLoginPage()),
-                );
-              }
-            },
-            child: const Text('Salir', style: TextStyle(color: Colors.white)),
+
+          // MAIN CONTENT
+          Expanded(
+            child: Container(
+              color: Colors.grey[50], // Fondo del contenido
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                switchInCurve: Curves.easeOut,
+                switchOutCurve: Curves.easeIn,
+                child: KeyedSubtree(
+                  key: ValueKey(_selectedRoute),
+                  child: _selectedScreen,
+                ),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return AdminScaffold(
-      backgroundColor: const Color(0xFFf8fafc),
-      appBar: AppBar(
-        title: const Row(
-          children: [
-            Icon(Icons.admin_panel_settings, color: Colors.white),
-            SizedBox(width: 8),
-            Text('Panel de Administración'),
-          ],
-        ),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-        elevation: 2,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications),
-            tooltip: 'Notificaciones',
-            onPressed: () {},
+  Widget _buildMenuItem({
+    required String title,
+    required String route,
+    required IconData icon,
+    required IconData selectedIcon,
+  }) {
+    final isSelected = _selectedRoute == route;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _navigateTo(route),
+        borderRadius: BorderRadius.circular(12),
+        hoverColor: Colors.grey[50],
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFFEFF6FF)
+                : Colors.transparent, // Azul muy claro
+            borderRadius: BorderRadius.circular(12),
           ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Cerrar Sesión',
-            onPressed: _logout,
-          ),
-        ],
-      ),
-      sideBar: SideBar(
-        backgroundColor: const Color(0xFF1e1b2e),
-        activeBackgroundColor: Colors.deepPurple.shade600,
-        borderColor: Colors.transparent,
-        iconColor: Colors.white70,
-        activeIconColor: Colors.white,
-        textStyle: const TextStyle(color: Colors.white70, fontSize: 14),
-        activeTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-        items: const [
-          AdminMenuItem(
-            title: 'Dashboard',
-            icon: Icons.dashboard,
-            route: AdminHomeScreen.routeName,
-          ),
-          AdminMenuItem(
-            title: 'Gestión de Pedidos',
-            icon: Icons.shopping_cart_checkout,
-            route: AdminPedidosScreen.routeName,
-          ),
-          AdminMenuItem(
-            title: 'Gestión de Productos',
-            icon: Icons.inventory_2,
-            route: AdminProductosScreen.routeName,
-          ),
-        ],
-        selectedRoute: _selectedRoute,
-        onSelected: (item) {
-          if (item.route != null) {
-            _navigateTo(item.route!);
-          }
-        },
-        header: Container(
-          height: 120,
-          width: double.infinity,
-          color: const Color(0xFF151321),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
+          child: Row(
+            children: [
+              Icon(
+                isSelected ? selectedIcon : icon,
+                size: 22,
+                color: isSelected ? const Color(0xFF2563EB) : Colors.grey[500],
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  color:
+                      isSelected ? const Color(0xFF2563EB) : Colors.grey[600],
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  fontSize: 15,
+                ),
+              ),
+              if (isSelected) ...[
+                const Spacer(),
                 Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: Colors.deepPurple,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.storefront, color: Colors.white, size: 28),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'TechStore',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Administración',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF2563EB),
+                    shape: BoxShape.circle,
                   ),
                 ),
               ],
-            ),
-          ),
-        ),
-        footer: Container(
-          height: 60,
-          width: double.infinity,
-          color: const Color(0xFF151321),
-          child: Center(
-            child: ListTile(
-              leading: const Icon(Icons.person, color: Colors.white70, size: 20),
-              title: Text(
-                FirebaseAuth.instance.currentUser?.email ?? 'Admin',
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
-              ),
-              trailing: IconButton(
-                icon: const Icon(Icons.logout, color: Colors.white70, size: 16),
-                onPressed: _logout,
-              ),
-            ),
-          ),
-        ),
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.deepPurple.shade50,
-              Colors.blue.shade50,
             ],
           ),
         ),
-        child: _selectedScreen,
       ),
     );
   }
